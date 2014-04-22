@@ -647,14 +647,17 @@ class Security extends Controller {
 			// On first valid password reset request redirect to the same URL without hash to avoid referrer leakage.
 
 			// Store the hash for the change password form. Will be unset after reload within the ChangePasswordForm.
-			Session::set('AutoLoginHash', $member->encryptWithUserSettings($_REQUEST['t']));
-			
+			$autoLogin = $member->AutoLoginHash;
+			$encryption = substr($autoLogin, 0, 9);
+			$hash = $encryption . sha1($encryption . $_REQUEST['t']);
+			Session::set('AutoLoginHash', $hash);
+
 			return $this->redirect($this->Link('changepassword'));
 		} elseif(Session::get('AutoLoginHash')) {
 			// Subsequent request after the "first load with hash" (see previous if clause).
 			$customisedController = $controller->customise(array(
 				'Content' =>
-					'<p>' . 
+					'<p>' .
 					_t('Security.ENTERNEWPASSWORD', 'Please enter a new password.') .
 					'</p>',
 				'Form' => $this->ChangePasswordForm(),
@@ -662,13 +665,14 @@ class Security extends Controller {
 		} elseif(Member::currentUser()) {
 			// Logged in user requested a password change form.
 			$customisedController = $controller->customise(array(
-				'Content' => '<p>' 
+				'Content' => '<p>'
 					. _t('Security.CHANGEPASSWORDBELOW', 'You can change your password below.') . '</p>',
 				'Form' => $this->ChangePasswordForm()));
 
 		} else {
-			// Show friendly message if it seems like the user arrived here via password reset feature.
-			if(isset($_REQUEST['m']) || isset($_REQUEST['t'])) {
+			// show an error message if the auto login token is invalid and the
+			// user is not logged in
+			if(!isset($_REQUEST['t']) || !$member) {
 				$customisedController = $controller->customise(
 					array('Content' =>
 						_t(

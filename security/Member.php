@@ -563,7 +563,10 @@ class Member extends DataObject implements TemplateGlobalProvider {
 	 * @returns bool Is token valid?
 	 */
 	public function validateAutoLoginToken($autologinToken) {
-		$hash = $this->encryptWithUserSettings($autologinToken);
+		//$hash = $this->encryptWithUserSettings($autologinToken);
+		$autoLogin = $this->AutoLoginHash;
+		$encryption = substr($autoLogin, 0, 9);
+		$hash = $encryption . sha1($encryption . $autologinToken);
 
 		$member = DataObject::get_one(
 			'Member',
@@ -572,6 +575,7 @@ class Member extends DataObject implements TemplateGlobalProvider {
 
 		return (bool)$member;
 	}
+
 
 	/**
 	 * Return the member for the auto login hash
